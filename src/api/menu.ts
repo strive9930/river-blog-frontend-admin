@@ -108,7 +108,7 @@ export class MenuApiService {
     isEnabled?: boolean,
     isVisible?: boolean,
     keyword?: string
-  }): Promise<ApiResponse<PageResponse<MenuGroup[]>>> {
+  }): Promise<ApiResponse<Menu[]>> {
     return request({
       url: '/menus/paged',
       method: 'GET',
@@ -204,7 +204,7 @@ export class MenuApiService {
   /**
    * 获取菜单组列表
    */
-  static async getMenuGroups(): Promise<ApiResponse<PageResponse<MenuGroup[]>>> {
+  static async getMenuGroups(): Promise<ApiResponse<MenuGroup[]>> {
     return request({
       url: '/menus/groups',
       method: 'GET'
@@ -216,9 +216,10 @@ export class MenuApiService {
   static async getMenuGroupPagedList(params: {
     pageIndex: number,
     pageSize: number,
+    keyword?: string,
     isEnabled?: boolean,
     isVisible?: boolean,
-  }): Promise<ApiResponse<PageResponse<Menu[]>>> {
+  }): Promise<ApiResponse<MenuGroup[]>> {
     return request({
       url: '/menus/groups/paged',
       method: 'GET',

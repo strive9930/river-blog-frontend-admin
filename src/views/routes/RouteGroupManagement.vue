@@ -256,9 +256,11 @@ async function loadData() {
       groupType: searchForm.groupType,
       isEnabled: searchForm.isEnabled
     })
-    groupList.value = res.data?.data || []
-    total.value = res.data?.totalCount || 0
-  } catch {
+    // 根据后端返回格式调整数据结构访问方式
+    groupList.value = res.data || []
+    total.value = res.totalCount || 0
+  } catch (error) {
+    console.error('加载路由分组数据失败:', error)
     ElMessage.error('加载数据失败')
   } finally {
     loading.value = false

@@ -508,7 +508,7 @@ async function loadData() {
     
     const response = await FrontendRouteApi.getPaged(params)
     routes.value = response.data || []
-    pagination.total = response?.totalCount || 0
+    pagination.total = response.totalCount || 0
     //权限分组
     const [treeRes, flatRes, groupRes] = await Promise.all([
       FrontendRouteApi.getTree(),

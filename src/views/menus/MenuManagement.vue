@@ -573,8 +573,8 @@ const fetchMenus = async (): Promise<Menu[]> => {
   const response = await MenuApiService.getPagedList(params)
   
   if (response.success) {
-    // 更新总条数
-    pagination.total = response.data?.totalCount || 0
+    // 根据后端返回格式：分页信息在根级别，数据在 response.data 中
+    pagination.total = response.totalCount || 0
     return response.data || []
   } else {
     throw new Error(response.message || '获取菜单列表失败')

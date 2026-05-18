@@ -300,13 +300,19 @@ const fetchMenuGroups = async (): Promise<{data: MenuGroup[], totalCount: number
     keyword: searchForm.keyword
   }
   
+  console.log('请求参数:', params)
   const response = await MenuApiService.getMenuGroupPagedList(params)
+  console.log('API 响应:', response)
   
   if (response.success) {
-    return {
-      data: response.data || [], // 数据在 response.data 中
-      totalCount: response.totalCount || 0 // 总数在 response.totalCount 中
+    // 根据后端返回格式：分页信息在根级别，数据在 response.data 中
+    // 响应结构：{ success, message, code, timestamp, pageIndex, pageSize, totalCount, totalPages, data: [...] }
+    const result = {
+      data: response.data || [], // response.data 是实际的菜单组列表
+      totalCount: response.totalCount || 0 // response.totalCount 在根级别
     }
+    console.log('解析后的数据:', result)
+    return result
   } else {
     throw new Error(response.message || '获取菜单组列表失败')
   }
@@ -317,9 +323,12 @@ const loadData = async () => {
   startLoading()
   try {
     const result = await fetchMenuGroups()
+    console.log('加载菜单组数据:', result)
     menuGroups.value = result.data
     pagination.total = result.totalCount
+    console.log('分页信息 - 当前页:', pagination.currentPage, '每页大小:', pagination.pageSize, '总数:', pagination.total)
   } catch (err: any) {
+    console.error('加载菜单组失败:', err)
     error('加载数据失败: ' + err.message)
   } finally {
     stopLoading()

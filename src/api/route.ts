@@ -97,7 +97,19 @@ export const FrontendRouteApi = {
     keyword?: string
     sortBy?: string
     sortDesc?: boolean
-  }): Promise<{ data: FrontendRoute[]; totalCount: number; pageIndex: number; pageSize: number }> {
+  }): Promise<{ 
+    success: boolean
+    message: string
+    code: number
+    timestamp: number
+    pageIndex: number
+    pageSize: number
+    totalCount: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+    data: FrontendRoute[]
+  }> {
     return request({ url: '/frontend-routes/paged', method: 'GET', params })
   },
 
@@ -159,7 +171,19 @@ export const RouteGroupApi = {
     keyword?: string
     sortBy?: string
     sortDesc?: boolean
-  }): Promise<{ data: { data: RouteGroup[]; totalCount: number; pageIndex: number; pageSize: number } }> {
+  }): Promise<{ 
+    success: boolean
+    message: string
+    code: number
+    timestamp: number
+    pageIndex: number
+    pageSize: number
+    totalCount: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+    data: RouteGroup[]
+  }> {
     return request({ url: '/route-groups/list/paged', method: 'GET', params })
   },
 
