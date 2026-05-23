@@ -1,12 +1,31 @@
 <template>
   <div class="menu-management">
-    <!-- 操作栏 -->
-    <el-card class="filter-card mb-20">
-      <div class="filter-container">
+    <!-- 页面标题栏 -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2 class="page-title">菜单管理</h2>
+        <span class="page-subtitle">{{ filteredCount }} 个菜单项</span>
+      </div>
+      <div class="page-header-right">
+        <el-tooltip content="刷新数据" placement="bottom">
+          <el-button class="btn-icon" @click="refreshData">
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-button type="primary" size="large" @click="handleAdd">
+          <el-icon><Plus /></el-icon>
+          新增菜单
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 搜索筛选栏 -->
+    <div class="filter-bar">
+      <div class="filter-bar-left">
         <el-input
           v-model="searchForm.keyword"
-          placeholder="搜索菜单名称或标题"
-          style="width: 200px; margin-right: 15px;"
+          placeholder="搜索菜单名称或标题..."
+          class="filter-input filter-input-search"
           clearable
           @clear="handleSearch"
           @keyup.enter="handleSearch"
@@ -17,16 +36,16 @@
         </el-input>
         <el-input
           v-model="searchForm.name"
-          placeholder="按名称搜索"
-          style="width: 150px; margin-right: 15px;"
+          placeholder="菜单名称"
+          class="filter-input filter-input-sm"
           clearable
           @clear="handleSearch"
           @keyup.enter="handleSearch"
         />
         <el-input
           v-model="searchForm.title"
-          placeholder="按标题搜索"
-          style="width: 150px; margin-right: 15px;"
+          placeholder="显示标题"
+          class="filter-input filter-input-sm"
           clearable
           @clear="handleSearch"
           @keyup.enter="handleSearch"
@@ -34,7 +53,7 @@
         <el-select
           v-model="searchForm.menuGroupId"
           placeholder="菜单组"
-          style="width: 200px; margin-right: 15px;"
+          class="filter-select"
           clearable
           @change="handleSearch"
         >
@@ -48,7 +67,7 @@
         <el-select
           v-model="searchForm.menuType"
           placeholder="菜单类型"
-          style="width: 150px; margin-right: 15px;"
+          class="filter-select"
           clearable
           @change="handleSearch"
         >
@@ -57,63 +76,54 @@
           <el-option label="分隔符" :value="3" />
           <el-option label="外部链接" :value="4" />
         </el-select>
+      </div>
+      <div class="filter-bar-right">
+        <el-button @click="resetSearch">重置</el-button>
         <el-button type="primary" @click="handleSearch">
           <el-icon><Search /></el-icon>
           搜索
         </el-button>
-        <el-button @click="resetSearch">重置</el-button>
-        <div class="right-actions">
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            新增菜单
-          </el-button>
-        </div>
       </div>
-    </el-card>
+    </div>
 
     <!-- 菜单树形表格 -->
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>菜单列表</span>
-          <div class="header-actions">
-            <span class="total-count">共 {{ pagination.total }} 个菜单项</span>
-            <el-button link type="primary" @click="refreshData">
-              <el-icon><Refresh /></el-icon>
-              刷新
-            </el-button>
-          </div>
-        </div>
-      </template>
+    <div class="table-card">
       
-      <el-table 
+      <el-table
         :data="menuList"
         v-loading="loading"
         row-key="id"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        :row-class-name="getRowClassName"
         default-expand-all
         style="width: 100%"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="name" label="菜单名称" min-width="150">
+        <el-table-column prop="name" label="菜单名称" min-width="220">
           <template #default="scope">
             <div class="menu-name-cell">
+              <!-- 树形连接线 -->
+              <span
+                v-for="(guide, gi) in getTreeGuides(scope.row)"
+                :key="gi"
+                :class="['tree-guide', `tree-guide-${guide}`]"
+              ></span>
               <el-icon v-if="scope.row.icon" class="menu-icon">
                 <component :is="scope.row.icon" />
               </el-icon>
-              <strong>{{ scope.row.name }}</strong>
-              <el-tag 
-                v-if="scope.row.menuType === 2" 
-                size="small" 
+              <strong :class="{ 'parent-name': scope.row.children && scope.row.children.length > 0 }">{{ scope.row.name }}</strong>
+              <el-tag
+                v-if="scope.row.menuType === 2"
+                size="small"
                 type="warning"
                 style="margin-left: 8px;"
               >
                 分组
               </el-tag>
-              <el-tag 
-                v-else-if="scope.row.menuType === 3" 
-                size="small" 
+              <el-tag
+                v-else-if="scope.row.menuType === 3"
+                size="small"
                 type="info"
                 style="margin-left: 8px;"
               >
@@ -197,19 +207,6 @@
         </el-table-column>
       </el-table>
       
-      <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          :current-page="pagination.currentPage"
-          :page-size="pagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-      
       <!-- 批量操作 -->
       <div v-if="selectedMenus.length > 0" class="batch-actions">
         <div class="batch-info">
@@ -227,14 +224,15 @@
           </el-button>
         </div>
       </div>
-    </el-card>
+    </div>
 
     <!-- 菜单详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
       :title="dialogTitle"
-      width="800px"
+      width="720px"
       :before-close="handleDialogClose"
+      class="menu-dialog"
     >
       <el-form
         ref="menuFormRef"
@@ -462,8 +460,9 @@ const { success, error, confirmDelete } = useFeedback()
 
 // 响应式数据
 const menuList = ref<Menu[]>([])
+const allMenus = ref<Menu[]>([]) // 完整菜单树，用于客户端过滤
 const menuGroups = ref<MenuGroup[]>([])
-const permissions = ref([]) // 添加权限选项数据
+const permissions = ref([])
 const selectedMenus = ref<Menu[]>([])
 
 // 搜索表单
@@ -473,13 +472,6 @@ const searchForm = reactive({
   menuType: undefined,
   name: '',
   title: ''
-})
-
-// 分页数据
-const pagination = reactive({
-  currentPage: 1,
-  pageSize: 10,
-  total: 0
 })
 
 // 表单相关
@@ -523,7 +515,7 @@ const menuFormRules = {
 
 // 计算属性
 const parentMenuOptions = computed(() => {
-  return flattenMenuTree(menuList.value).filter(menu => menu.id !== menuForm.id)
+  return flattenMenuTree(allMenus.value).filter(menu => menu.id !== menuForm.id)
 })
 
 const canBatchEnable = computed(() => {
@@ -559,22 +551,81 @@ const getGroupTagType = (groupName: string) => {
   return typeMap[groupName] || 'info'
 }
 
+const depthMap = ref<Record<string, number>>({})
+// treeLineMap: nodeId -> boolean[]，每个元素表示该层级是否为最后一个子节点
+// 最后一个元素是当前节点自身，前面是各级祖先
+const treeLineMap = ref<Record<string, boolean[]>>({})
+
+const buildDepthMap = (menus: Menu[], depth = 0, ancestorLastFlags: boolean[] = []) => {
+  menus.forEach((menu, index) => {
+    depthMap.value[menu.id] = depth
+    const isLast = index === menus.length - 1
+
+    if (depth > 0) {
+      treeLineMap.value[menu.id] = [...ancestorLastFlags, isLast]
+    }
+
+    if (menu.children && menu.children.length > 0) {
+      buildDepthMap(menu.children, depth + 1, [...ancestorLastFlags, isLast])
+    }
+  })
+}
+
+type TreeGuideType = 'blank' | 'line' | 'fork' | 'corner'
+
+const getTreeGuides = (row: Menu): TreeGuideType[] => {
+  const flags = treeLineMap.value[row.id]
+  if (!flags || flags.length === 0) return []
+
+  return flags.map((isLast: boolean, i: number) => {
+    if (i < flags.length - 1) {
+      return isLast ? 'blank' : 'line'
+    }
+    return isLast ? 'corner' : 'fork'
+  })
+}
+
+const getRowClassName = ({ row }: { row: Menu }) => {
+  const depth = depthMap.value[row.id] ?? 0
+  const hasChildren = row.children && row.children.length > 0
+  const classes = [`depth-${depth}`]
+  if (hasChildren) classes.push('parent-row')
+  if (!row.parentId) classes.push('root-row')
+  if (!hasChildren && row.parentId) classes.push('leaf-row')
+  return classes.join(' ')
+}
+
+// 客户端过滤：递归过滤菜单树，保留匹配节点及其所有祖先路径上的节点
+const filterMenuTree = (menus: Menu[], keyword: string, name: string, title: string, menuGroupId: string | undefined, menuType: number | undefined): Menu[] => {
+  const matchNode = (menu: Menu): boolean => {
+    if (keyword) {
+      const kw = keyword.toLowerCase()
+      if (!menu.name.toLowerCase().includes(kw) && !menu.title.toLowerCase().includes(kw)) return false
+    }
+    if (name && !menu.name.toLowerCase().includes(name.toLowerCase())) return false
+    if (title && !menu.title.toLowerCase().includes(title.toLowerCase())) return false
+    if (menuGroupId && menu.menuGroupId !== menuGroupId) return false
+    if (menuType !== undefined && menu.menuType !== menuType) return false
+    return true
+  }
+
+  return menus.reduce((acc: Menu[], menu: Menu) => {
+    const children = menu.children ? filterMenuTree(menu.children, keyword, name, title, menuGroupId, menuType) : []
+    if (matchNode(menu) || children.length > 0) {
+      acc.push({ ...menu, children: children.length > 0 ? children : menu.children })
+    }
+    return acc
+  }, [])
+}
+
+const filteredCount = computed(() => {
+  return flattenMenuTree(menuList.value).length
+})
+
 // API 调用函数
 const fetchMenus = async (): Promise<Menu[]> => {
-  // 使用分页API获取菜单数据
-  const params = {
-    pageIndex: pagination.currentPage,
-    pageSize: pagination.pageSize,
-    menuGroupId: searchForm.menuGroupId,
-    menuType: searchForm.menuType,
-    keyword: searchForm.keyword
-  }
-  
-  const response = await MenuApiService.getPagedList(params)
-  
+  const response = await MenuApiService.getMenuTree()
   if (response.success) {
-    // 根据后端返回格式：分页信息在根级别，数据在 response.data 中
-    pagination.total = response.totalCount || 0
     return response.data || []
   } else {
     throw new Error(response.message || '获取菜单列表失败')
@@ -583,19 +634,11 @@ const fetchMenus = async (): Promise<Menu[]> => {
 
 const fetchMenuGroups = async (): Promise<MenuGroup[]> => {
   const response = await MenuApiService.getMenuGroups()
-  
   if (response.success) {
-    // 为兼容分页和非分页数据格式，检查是否有data.data结构
-    if (response.data  && Array.isArray(response.data)) {
-      // 分页数据格式
-      return response.data || []
-    } else if (response.data && Array.isArray(response.data)) {
-      // 非分页数据格式
-      return response.data || []
-    } else {
-      // 默认返回空数组
-      return []
+    if (Array.isArray(response.data)) {
+      return response.data
     }
+    return []
   } else {
     throw new Error(response.message || '获取菜单组失败')
   }
@@ -609,8 +652,10 @@ const loadData = async () => {
       fetchMenus(),
       fetchMenuGroups()
     ])
-    menuList.value = menus
+    allMenus.value = menus
     menuGroups.value = groups
+    buildDepthMap(menus)
+    applyFilters()
   } catch (err: any) {
     error('加载数据失败: ' + err.message)
   } finally {
@@ -618,26 +663,28 @@ const loadData = async () => {
   }
 }
 
-const handleSizeChange = (val: number) => {
-  pagination.pageSize = val
-  pagination.currentPage = 1  // 回到第一页
-  loadData()
-}
-
-const handleCurrentChange = (val: number) => {
-  pagination.currentPage = val
-  loadData()
+const applyFilters = () => {
+  menuList.value = filterMenuTree(
+    allMenus.value,
+    searchForm.keyword,
+    searchForm.name,
+    searchForm.title,
+    searchForm.menuGroupId,
+    searchForm.menuType
+  )
 }
 
 const handleSearch = () => {
-  loadData()
+  applyFilters()
 }
 
 const resetSearch = () => {
   searchForm.keyword = ''
+  searchForm.name = ''
+  searchForm.title = ''
   searchForm.menuGroupId = undefined
   searchForm.menuType = undefined
-  loadData()
+  applyFilters()
   ElMessage.success('搜索条件已重置')
 }
 
@@ -841,21 +888,11 @@ onMounted(() => {
   loadPermissions() // 加载权限数据
 })
 
-// 添加加载权限的方法
 const loadPermissions = async () => {
   try {
     const response = await import('@/services/permission.service').then(mod => mod.PermissionService.getList())
     if (response.success) {
-      // 处理API返回的不同数据结构
-      let permissionList = []
-      if (response.data && Array.isArray(response.data)) {
-        permissionList = response.data
-      } else if (response.data && Array.isArray(response.data)) {
-        permissionList = response.data
-      } else {
-        permissionList = []
-      }
-      
+      const permissionList = response.data && Array.isArray(response.data) ? response.data : []
       permissions.value = permissionList.map((permission: any) => ({
         id: permission.id,
         name: permission.name,
@@ -888,81 +925,386 @@ const filteredIcons = computed(() => {
 </script>
 
 <style scoped>
+/* ===== 页面容器 ===== */
 .menu-management {
-  padding: 20px;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background: #f1f5f9;
 }
 
-.mb-20 {
-  margin-bottom: 20px;
-}
-
-.filter-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.filter-container {
+/* ===== 页面标题栏 ===== */
+.page-header {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.right-actions {
-  margin-left: auto;
-}
-
-.card-header {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
+  margin-bottom: 16px;
 }
 
-.header-actions {
+.page-header-left {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.total-count {
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.3px;
+}
+
+.page-subtitle {
   font-size: 14px;
-  color: #606266;
+  color: #94a3b8;
 }
 
-.menu-name-cell {
+.page-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.menu-icon {
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
-  color: #409EFF;
+  color: #64748b;
+  transition: all 0.2s;
 }
 
-.text-muted {
-  color: #909399;
+.btn-icon:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
 }
 
+/* ===== 搜索筛选栏 ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.filter-bar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+}
+
+.filter-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-input {
+  width: 220px;
+}
+
+.filter-input-search {
+  width: 240px;
+}
+
+.filter-input-sm {
+  width: 140px;
+}
+
+.filter-select {
+  width: 150px;
+}
+
+/* ===== 表格卡片 ===== */
+.table-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+/* ===== Element Plus 全局覆盖 ===== */
+/* 按钮圆角 */
+:deep(.el-button) {
+  border-radius: 8px;
+}
+
+:deep(.el-button--primary) {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+:deep(.el-button--primary:hover) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* 输入框圆角 */
+:deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+}
+
+:deep(.el-input.is-focus .el-input__wrapper),
+:deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3b82f6 inset;
+}
+
+:deep(.el-input__inner) {
+  font-size: 14px;
+}
+
+:deep(.el-input__inner::placeholder) {
+  color: #94a3b8;
+}
+
+/* Select 下拉框 */
+:deep(.el-select .el-input__wrapper) {
+  border-radius: 8px;
+}
+
+/* Tag 圆角 */
+:deep(.el-tag) {
+  border-radius: 6px;
+}
+
+/* 表格 */
+:deep(.el-table) {
+  --el-table-border-color: #f1f5f9;
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-row-hover-bg-color: #f8fafc;
+  font-size: 14px;
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+:deep(.el-table__body tr:hover > td) {
+  background-color: #f8fafc;
+}
+
+:deep(.el-table__header) {
+  border-radius: 0;
+}
+
+/* ===== 树形层级可视化（showLine 风格） ===== */
+
+/* 隐藏 el-table 默认树形缩进，改用自定义 guide */
+:deep(.el-table__indent) {
+  width: 0 !important;
+  padding: 0 !important;
+}
+
+:deep(.el-table__placeholder) {
+  display: none;
+}
+
+/* 表格单元格内容垂直居中 */
+:deep(.el-table .cell) {
+  display: flex;
+  align-items: center;
+}
+
+/* 展开/折叠图标 */
+:deep(.el-table__expand-icon) {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  color: #288eff;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+:deep(.el-table__expand-icon:hover) {
+  color: #1a6fd4;
+}
+
+:deep(.el-table__expand-icon .el-icon) {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+:deep(.el-table__expand-icon--expanded) {
+  color: #288eff;
+}
+
+/* ===== 自定义树形连接线 ===== */
+.tree-guide {
+  display: inline-block;
+  width: 28px;
+  height: 48px;
+  position: relative;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* 竖线 - 祖先层级延续 */
+.tree-guide-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px solid #d9d9d9;
+}
+
+/* 分叉 - T型（当前层级，非末尾，竖线向下+右横线） */
+.tree-guide-fork::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px solid #d9d9d9;
+}
+
+.tree-guide-fork::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: 0;
+  height: 0;
+  border-top: 1px solid #d9d9d9;
+}
+
+/* 拐角 - L型（末尾子节点，竖线到一半+右横线） */
+.tree-guide-corner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 50%;
+  left: 50%;
+  border-left: 1px solid #d9d9d9;
+}
+
+.tree-guide-corner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: 0;
+  height: 0;
+  border-top: 1px solid #d9d9d9;
+}
+
+/* 空白占位 */
+.tree-guide-blank {
+  visibility: hidden;
+}
+
+/* ===== 行样式 ===== */
+:deep(tr.parent-row) {
+  background-color: #fafbfc;
+}
+
+:deep(tr.parent-row > td.el-table__cell) {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+:deep(tr.parent-row .cell strong) {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ===== 悬停效果 ===== */
+:deep(.el-table__body tr:hover > td.el-table__cell) {
+  background-color: #f8fafc !important;
+}
+
+:deep(tr.parent-row:hover > td.el-table__cell) {
+  background-color: #f1f5f9 !important;
+}
+
+/* ===== 批量操作栏 ===== */
 .batch-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background-color: #f5f7fa;
-  border-top: 1px solid #ebeef5;
-  margin-top: 20px;
-  border-radius: 0 0 4px 4px;
+  padding: 12px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 .batch-info {
-  font-size: 14px;
-  color: #606266;
+  font-size: 13px;
+  color: #64748b;
 }
 
 .batch-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+}
+
+/* ===== 对话框 ===== */
+:deep(.menu-dialog .el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+:deep(.menu-dialog .el-dialog__header) {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+:deep(.menu-dialog .el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+:deep(.menu-dialog .el-dialog__body) {
+  padding: 20px 24px;
+}
+
+:deep(.menu-dialog .el-dialog__footer) {
+  padding: 12px 24px 20px;
+}
+
+:deep(.menu-dialog .el-form-item__label) {
+  font-weight: 500;
+  color: #475569;
 }
 
 .dialog-footer {
@@ -971,45 +1313,36 @@ const filteredIcons = computed(() => {
   gap: 10px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .filter-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .right-actions {
-    margin-left: 0;
-    display: flex;
-    justify-content: center;
-  }
-  
-  .filter-container > * {
-    width: 100%;
-  }
-  
-  .card-header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-}
-
-.action-buttons {
+/* ===== 菜单名称列 ===== */
+.menu-name-cell {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
 }
 
+.parent-name {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.menu-icon {
+  font-size: 16px;
+  color: #3b82f6;
+}
+
+.text-muted {
+  color: #94a3b8;
+}
+
+/* ===== 图标选择器 ===== */
 .icon-picker {
   padding: 10px;
 }
 
 .icon-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
 }
 
 .icon-item {
@@ -1017,34 +1350,70 @@ const filteredIcons = computed(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
+  padding: 8px 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
   text-align: center;
 }
 
 .icon-item:hover {
-  border-color: #409eff;
-  background-color: #f5f7fa;
+  border-color: #3b82f6;
+  background-color: #eff6ff;
 }
 
 .icon-item.active {
-  border-color: #409eff;
-  background-color: #ecf5ff;
-  color: #409eff;
+  border-color: #3b82f6;
+  background-color: #dbeafe;
+  color: #3b82f6;
 }
 
 .icon-name {
-  margin-top: 5px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 11px;
   word-break: break-all;
 }
 
-.pagination {
-  margin-top: 20px;
+/* ===== 操作按钮组 ===== */
+.action-buttons {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .menu-management {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar-right {
+    justify-content: flex-end;
+  }
+
+  .filter-input,
+  .filter-input-search,
+  .filter-input-sm,
+  .filter-select {
+    width: 100%;
+  }
 }
 </style>

@@ -26,3 +26,4 @@ node_modules
 .vite/deps/vue.js
 .vite/deps/vue.js.map
 .idea/indexLayout.xml
+/.idea/inspectionProfiles/Project_Default.xml
