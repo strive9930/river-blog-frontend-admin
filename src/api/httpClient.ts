@@ -18,8 +18,8 @@ apiClient.interceptors.request.use(
     const loadingMessage = generateLoadingMessage(config)
     loadingService.show(loadingMessage)
     
-    // 添加认证token
-    const token = localStorage.getItem('accessToken')
+    // 添加认证token（使用统一键名 `access_token`）
+    const token = localStorage.getItem('access_token')
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -77,7 +77,7 @@ function handleServerErrors(response: AxiosResponse) {
     case 401:
       errorHandlingService.showWarning('登录已过期，请重新登录')
       // 可以在这里触发登出逻辑
-      localStorage.removeItem('accessToken')
+      localStorage.removeItem('access_token')
       window.location.href = '/login'
       break
     case 403:

@@ -33,7 +33,7 @@ export default defineConfig({
     }
   },
   server: {
-    open: true,  // 启动时自动打开浏览器
+    open: false,  // 禁用启动时自动打开浏览器（避免 spawn UNKNOWN 错误）
     port: Number(process.env.VITE_APP_PORT) || 3000,  // 使用环境变量配置端口
     proxy: {
       '/api': {

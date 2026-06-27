@@ -17,8 +17,8 @@
         :collapse-transition="false"
         mode="vertical"
       >
-        <!-- 重构后的动态菜单渲染 -->
-        <template v-for="route in permissionStore.routes" :key="route.path">
+        <!-- 重构后的动态菜单渲染（使用计算属性 menuRoutes） -->
+        <template v-for="route in menuRoutes" :key="route.path">
           <!-- 过滤掉隐藏路由和特殊路由 -->
           <template v-if="route && !route.meta?.hidden && route.path !== '/login' && route.path !== '/404'">
             <!-- 有子路由的情况 -->

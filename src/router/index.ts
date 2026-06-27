@@ -3,6 +3,8 @@
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { usePermissionStore } from '@/store/modules/permission'
+import { AuthService } from '@/api/auth'
 
 // 布局组件
 const MainLayout = () => import('@/layouts/MainLayout.vue')
@@ -18,17 +20,53 @@ const Profile = () => import('@/views/profile/Profile.vue')
 const FrontendRouteManagement = () => import('@/views/routes/FrontendRouteManagement.vue')
 const RouteGroupManagement = () => import('@/views/routes/RouteGroupManagement.vue')
 
-// 路由守卫
+// 路由守卫：按需拉取权限并动态挂载路由
 const beforeEach = async (to: any, from: any, next: any) => {
   const requiresAuth = to.matched.some((record: any) => record.meta.requiresAuth)
   const token = localStorage.getItem('access_token')
+  const permissionStore = usePermissionStore()
+
   if (requiresAuth && !token) {
     next('/login')
-  } else if (to.path === '/login' && token) {
-    next('/')
-  } else {
-    next()
+    return
   }
+
+  if (to.path === '/login' && token) {
+    next('/')
+    return
+  }
+
+  // 如果已登录但尚未初始化权限与路由，拉取权限并生成路由
+  if (token && (!permissionStore.routes || permissionStore.routes.length === 0)) {
+    try {
+      const resp = await AuthService.getCurrentUserPermissions()
+      const permissions = resp?.data?.permissions || []
+
+      // 生成可访问路由（会写入 localStorage）
+      const accessedRoutes = await permissionStore.generateRoutes(permissions)
+
+      // 动态挂载路由
+      accessedRoutes.forEach((r: RouteRecordRaw) => {
+        try {
+          router.addRoute(r as any)
+        } catch (e) {
+          // 忽略重复添加的错误
+        }
+      })
+
+      // 重试当前导航以确保新路由生效
+      next({ ...to, replace: true })
+      return
+    } catch (err) {
+      console.error('加载用户权限失败', err)
+      // 若拉取权限失败，跳转登录
+      localStorage.removeItem('access_token')
+      window.location.href = '/login'
+      return
+    }
+  }
+
+  next()
 }
 
 const routes: RouteRecordRaw[] = [
