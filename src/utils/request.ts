@@ -62,3 +62,20 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// 导出常用的 HTTP 方法，方便在 API 文件中直接使用
+export const get = <T = any>(url: string, params?: any) => {
+  return api.get<T>(url, { params });
+};
+
+export const post = <T = any>(url: string, data?: any) => {
+  return api.post<T>(url, data);
+};
+
+export const put = <T = any>(url: string, data?: any) => {
+  return api.put<T>(url, data);
+};
+
+export const del = <T = any>(url: string, params?: any) => {
+  return api.delete<T>(url, { params });
+};
