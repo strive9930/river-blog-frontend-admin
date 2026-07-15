@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus';
 import router from '@/router'; // 引入 Vue Router 进行无刷新跳转
 
 const api = axios.create({
-  baseURL: '', // 绝对指向您的 YARP 网关 (或者用 import.meta.env.VITE_APP_BASE_API)
+    baseURL: import.meta.env.VITE_APP_BASE_API || '',
   timeout: 15000
 });
 
